@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -24,7 +23,7 @@ class ExampleTest extends TestCase
 
         // Assert
         foreach ($characters as $character) {
-            $response->assertSee($character);
+            $response->assertSeeText($character);
         }
     }
 }
