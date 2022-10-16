@@ -22,6 +22,7 @@ class ExampleTest extends TestCase
         $response = $this->get('/');
 
         // Assert
+        $response->assertStatus(200);
         foreach ($characters as $character) {
             $response->assertSeeText($character);
         }
