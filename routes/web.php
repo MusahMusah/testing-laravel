@@ -14,12 +14,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('products')
-    ->name('products.')
-    ->group(function () {
-        Route::get('/', [ProductController::class, 'index'])->name('index');
-    });
+Route::get('/products', [ProductController::class, 'index'])->name('welcome')->middleware('auth');
 
-Route::get('/', function () {
-    return view('welcome', ['products' => \App\Models\Product::all()]);
-});
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+require __DIR__.'/auth.php';
