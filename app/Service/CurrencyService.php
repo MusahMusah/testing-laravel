@@ -17,9 +17,9 @@ class CurrencyService
             return $amount;
         }
 
-        if (!isset(self::RATES[$fromCurrency][$toCurrency])) {
-            throw new \Exception('Currency conversion not supported');
-        }
+//        if (!isset(self::RATES[$fromCurrency][$toCurrency])) {
+//            throw new \Exception('Currency conversion not supported');
+//        }
 
         $rate = self::RATES[$fromCurrency][$toCurrency] ?? 0;
 
