@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,6 +14,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::prefix('products')
+    ->name('products.')
+    ->group(function () {
+        Route::get('/', [ProductController::class, 'index'])->name('index');
+    });
+
 Route::get('/', function () {
-    return view('welcome');
+    return view('welcome', ['products' => \App\Models\Product::all()]);
 });
