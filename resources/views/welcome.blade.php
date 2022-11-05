@@ -18,6 +18,13 @@
             body {
                 font-family: 'Nunito', sans-serif;
             }
+
+            .button {
+                background-color: #1a202c; color: white;
+                border: none;
+                padding: .5rem;
+                border-radius: .8rem;
+            }
         </style>
     </head>
     <body class="antialiased">
@@ -44,6 +51,14 @@
                         </g>
                     </svg>
                 </div>
+
+                @if(auth()->user()->isAdmin())
+                    <div class="flex mt-4">
+                        <a href="{{route('products.create')}}" class="button">
+                            Add new product
+                        </a>
+                    </div>
+                @endif
 
                 <div class="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow sm:rounded-lg">
                     <div class="grid grid-cols-1 md:grid-cols-2">
