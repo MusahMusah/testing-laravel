@@ -66,6 +66,7 @@
                                 </tr>
                             @endforelse
                             </tbody>
+                            {{ $products->links() }}
                         </table>
                     </div>
                 </div>

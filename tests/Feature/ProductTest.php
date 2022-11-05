@@ -33,7 +33,7 @@ class ProductTest extends TestCase
         $response = $this->actingAs($this->user)->get('/products');
 
         $response->assertStatus(200);
-        $response->assertViewIs('welcome');
+        $response->assertViewIs('products.index');
     }
 
     public function test_homepage_contains_empty_table(): void
@@ -117,5 +117,35 @@ class ProductTest extends TestCase
         $response = $this->actingAs($this->user)->get('/products/create');
 
         $response->assertStatus(403);
+    }
+
+    public function test_create_product_successful()
+    {
+        $product = [
+            'name' => 'Test Product',
+            'price' => 100,
+        ];
+
+        $response = $this->actingAs($this->admin)->post('/products', $product);
+
+        $response->assertStatus(302);
+        $response->assertRedirect('/products');
+        $this->assertDatabaseHas('products', $product);
+        $lastProduct = Product::latest()->first();
+        $this->assertEquals($product['name'], $lastProduct->name);
+        $this->assertEquals($product['price'], $lastProduct->price);
+    }
+
+    public function test_create_product_unsuccessful()
+    {
+        $product = [
+            'name' => 'Test Product',
+            'price' => 100,
+        ];
+
+        $response = $this->actingAs($this->user)->post('/products', $product);
+
+        $response->assertStatus(403);
+        $this->assertDatabaseMissing('products', $product);
     }
 }
