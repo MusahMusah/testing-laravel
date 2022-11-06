@@ -26,11 +26,11 @@ Route::prefix('products')
                     ->name('create');
                 Route::post('/', [ProductController::class, 'store'])
                     ->name('store');
-                Route::get('products/{product}/edit', [ProductController::class, 'edit'])
+                Route::get('/{product}/edit', [ProductController::class, 'edit'])
                     ->name('edit');
-                Route::put('products/{product}', [ProductController::class, 'update'])
+                Route::put('/{product}', [ProductController::class, 'update'])
                     ->name('update');
-                Route::delete('products/{product}', [ProductController::class, 'destroy'])
+                Route::delete('/{product}', [ProductController::class, 'destroy'])
                     ->name('destroy');
             });
     });

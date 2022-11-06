@@ -24,7 +24,7 @@
                             <div class="mt-4">
                                 <x-input-label for="price" :value="__('Price')" />
 
-                                <x-text-input id="price" class="block mt-1 w-full" type="text" name="price" :value="old('price')" required />
+                                <x-text-input id="price" class="block mt-1 w-full" type="text" name="price" :value="old('price')" />
                             </div>
 
                             <!-- YouTube ID -->

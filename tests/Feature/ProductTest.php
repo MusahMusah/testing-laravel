@@ -119,6 +119,18 @@ class ProductTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_create_product_validation_error_redirects_back_to_form(): void
+    {
+        $response = $this->actingAs($this->admin)->post('/products', [
+            'name' => '',
+            'price' => '',
+        ]);
+
+        $response->assertStatus(302);
+        $response->assertSessionHasErrors(['name', 'price']);
+        $response->assertInvalid(['name', 'price']);
+    }
+
     public function test_create_product_successful()
     {
         $product = [
@@ -147,5 +159,58 @@ class ProductTest extends TestCase
 
         $response->assertStatus(403);
         $this->assertDatabaseMissing('products', $product);
+    }
+
+    public function test_product_edit_contains_correct_values(): void
+    {
+        // Arrange
+        $product = Product::factory()->create();
+
+        // Act
+        $response = $this->actingAs($this->admin)->get("/products/{$product->id}/edit");
+
+        // Assert
+        $response->assertOk();
+        $response->assertSee("value=\"{$product->name}\"", false);
+        $response->assertSee("value=\"{$product->price}\"", false);
+        $response->assertViewHas('product', $product);
+    }
+
+    public function test_update_product_validation_error_redirects_back_to_form()
+    {
+        $product = Product::factory()->create();
+
+        $response = $this->actingAs($this->admin)->put("/products/{$product->id}", [
+            'name' => '',
+            'price' => '212',
+        ]);
+
+        $response->assertStatus(302);
+        $response->assertInvalid(['name']);
+    }
+
+    public function test_update_product_successful(): void
+    {
+        $product = Product::factory()->create();
+
+        $response = $this->actingAs($this->admin)->put("/products/{$product->id}", [
+            'name' => 'Test Updated',
+            'price' => 100,
+        ]);
+
+        $response->assertStatus(302);
+        $response->assertRedirect('/products');
+    }
+
+    public function test_product_delete_successful(): void
+    {
+        $product = Product::factory()->create();
+
+        $response = $this->actingAs($this->admin)->delete("/products/{$product->id}");
+
+        $response->assertStatus(302);
+        $response->assertRedirect('/products');
+        $this->assertDatabaseMissing('products', $product->toArray());
+        $this->assertDatabaseCount('products', 0);
     }
 }
