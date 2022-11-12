@@ -6,9 +6,11 @@ use App\Http\Resources\Ghost\EmptyResource;
 use App\Http\Resources\Ghost\EmptyResourceCollection;
 use Error;
 use Exception;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 trait ApiResponseTrait
@@ -20,7 +22,7 @@ trait ApiResponseTrait
      * @param array $headers
      * @return JsonResponse
      */
-    protected function respondWithResource(JsonResource $resource, $message = null, int $statusCode = 200, array $headers = [])
+    protected function respondWithResource(JsonResource $resource, $message = null, int $statusCode = 200, array $headers = []): JsonResponse
     {
         // https://laracasts.com/discuss/channels/laravel/pagination-data-missing-from-api-resource
 
@@ -39,7 +41,7 @@ trait ApiResponseTrait
      * @param array $headers
      * @return array
      */
-    public function parseGivenData($data = [], $statusCode = 200, $headers = [])
+    public function parseGivenData(array $data = [], int $statusCode = 200, array $headers = []): array
     {
         $responseStructure = [
             'success' => $data['success'],
@@ -88,13 +90,13 @@ trait ApiResponseTrait
     /**
      * Return generic json response with the given data.
      *
-     * @param       $data
+     * @param array $data
      * @param int $statusCode
      * @param array $headers
      *
      * @return JsonResponse
      */
-    protected function apiResponse($data = [], $statusCode = 200, $headers = [])
+    protected function apiResponse(array $data = [], int $statusCode = 200, array $headers = [])
     {
         // https://laracasts.com/discuss/channels/laravel/pagination-data-missing-from-api-resource
 
@@ -118,7 +120,7 @@ trait ApiResponseTrait
      * @param array $headers
      * @return JsonResponse
      */
-    protected function respondWithResourceCollection(ResourceCollection $resourceCollection, $message = null, $statusCode = 200, $headers = [])
+    protected function respondWithResourceCollection(ResourceCollection $resourceCollection, $message = null, int $statusCode = 200, array $headers = [])
     {
 
         // https://laracasts.com/discuss/channels/laravel/pagination-data-missing-from-api-resource
@@ -132,15 +134,22 @@ trait ApiResponseTrait
     }
 
     /**
-     * Respond with success.
-     *
-     * @param string $message
-     *
+     * Respond with success data.
+     * @param JsonResource|Collection|LengthAwarePaginator $resource
+     * @param null $message
+     * @param int $statusCode
+     * @param array $headers
      * @return JsonResponse
      */
-    protected function respondSuccess($message = '')
+    protected function respondWithSuccess(JsonResource|Collection|LengthAwarePaginator $resource, $message = null, int $statusCode = 200, array $headers = []): JsonResponse
     {
-        return $this->apiResponse(['success' => true, 'message' => $message]);
+        return $this->apiResponse(
+            [
+                'success' => true,
+                'result' => $resource,
+                'message' => $message
+            ], $statusCode, $headers
+        );
     }
 
     /**
@@ -199,7 +208,7 @@ trait ApiResponseTrait
      */
     protected function respondUnAuthorized(string $message = 'Unauthorized')
     {
-        return $this->respondError($message, 401);
+        return $this->respondWithError($message, 401);
     }
 
     /**
@@ -212,7 +221,7 @@ trait ApiResponseTrait
      * @param bool|null $error_code
      * @return JsonResponse
      */
-    protected function respondError($message, int $statusCode = 400, Exception $exception = null, int $error_code = 1)
+    protected function respondWithError(string $message, int $statusCode = 400, Exception $exception = null, int $error_code = 1): JsonResponse
     {
 
         return $this->apiResponse(
@@ -234,7 +243,7 @@ trait ApiResponseTrait
      */
     protected function respondForbidden(string $message = 'Forbidden')
     {
-        return $this->respondError($message, 403);
+        return $this->respondWithError($message, 403);
     }
 
     /**
@@ -246,7 +255,7 @@ trait ApiResponseTrait
      */
     protected function respondNotFound(string $message = 'Not Found')
     {
-        return $this->respondError($message, 404);
+        return $this->respondWithError($message, 404);
     }
 
     /**
@@ -258,7 +267,7 @@ trait ApiResponseTrait
      */
     protected function respondInternalError(string $message = 'Internal Error')
     {
-        return $this->respondError($message, 500);
+        return $this->respondWithError($message, 500);
     }
 
     protected function respondValidationErrors(ValidationException $exception)
