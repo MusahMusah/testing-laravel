@@ -11,6 +11,7 @@
 |
 */
 
+use App\Models\Product;
 use App\Models\User;
 
 uses(
@@ -50,4 +51,9 @@ function createUser(bool $isAdmin = false): User
     return User::factory()->create([
         'is_admin' => $isAdmin,
     ]);
+}
+
+function createProduct(): Product
+{
+    return Product::factory()->create();
 }

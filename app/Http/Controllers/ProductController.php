@@ -3,13 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProductRequest;
-use App\Http\Resources\Ghost\EmptyResourceCollection;
+use App\Http\Resources\Ghost\EmptyResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
-use App\Traits\ApiResponseM;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ProductController extends Controller
@@ -69,22 +67,32 @@ class ProductController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param  int  $product
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(ProductRequest $request, Product $product): JsonResponse
     {
-        //
+        $product->update($request->all());
+
+        return $this->respondWithSuccess(
+            resource: ProductResource::make($product),
+            message: 'Product updated successfully',
+        );
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param  int  $product
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Product $product): JsonResponse
     {
-        //
+        $product->delete();
+
+        return $this->respondWithSuccess(
+            resource: new EmptyResource([]),
+            message: 'Product deleted successfully',
+        );
     }
 }
