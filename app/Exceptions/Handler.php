@@ -11,6 +11,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -55,10 +56,29 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        $this->renderable(fn (NotFoundHttpException $e, $request) => $this->respondNotFound());
+
+        $this->renderable(fn (ValidationException $e, $request) => $this->respondValidationErrors($e));
+
+        $this->renderable(fn (ModelNotFoundException $e, $request) => $this->respondModelNotFound($e));
+
+        $this->renderable(fn (AuthenticationException $e, $request) => $this->respondUnauthenticated());
+
+        $this->renderable(fn (ThrottleRequestsException $e, $request) => $this->respondTooManyRequests());
+
+        $this->renderable(fn (PostTooLargeException $e, $request) => $this->respondPayloadTooLarge());
+
+        $this->renderable(fn (HttpException $e, $request) => dd($e));
+
+        $this->renderable(fn (QueryException $e, $request) => $this->respondQueryError($e));
+
+//        $this->renderable(fn (\Throwable $e, $request) => $this->respondInternalError($e));
     }
 
-    public function render($request, Throwable $exception)
+    public function ddssrender($request, Throwable $exception)
     {
+//        dd(get_class($exception));
         if ($request->expectsJson()) {
             if ($exception instanceof PostTooLargeException) {
                 return $this->apiResponse(
@@ -69,7 +89,6 @@ class Handler extends ExceptionHandler
                     400
                 );
             }
-
             if ($exception instanceof AuthenticationException) {
                 return $this->apiResponse(
                     [
@@ -97,17 +116,6 @@ class Handler extends ExceptionHandler
                     404
                 );
             }
-            if ($exception instanceof ValidationException) {
-
-                return $this->apiResponse(
-                    [
-                        'success' => false,
-                        'message' => $exception->getMessage(),
-                        'errors' => $exception->errors()
-                    ],
-                    422
-                );
-            }
             if ($exception instanceof QueryException) {
 
                 return $this->apiResponse(
@@ -120,7 +128,7 @@ class Handler extends ExceptionHandler
                     500
                 );
             }
-             if ($exception instanceof HttpException) {
+            if ($exception instanceof HttpException) {
                  // $exception = $exception->getResponse();
                  return $this->apiResponse(
                      [

@@ -7,11 +7,14 @@ use App\Http\Resources\Ghost\EmptyResourceCollection;
 use Error;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 trait ApiResponseTrait
 {
@@ -211,19 +214,47 @@ trait ApiResponseTrait
         return $this->respondWithError($message, 401);
     }
 
+    public function respondUnauthenticated(string $message = 'Unauthenticated or Token Expired, Please Login'): JsonResponse
+    {
+        return $this->respondWithError($message, 401);
+    }
+
+    protected function respondTooManyRequests(string $message = 'Too Many Requests,Please Slow Down'): JsonResponse
+    {
+        return $this->respondWithError($message, 429);
+    }
+
+    protected function respondHttpError(HttpException $exception): JsonResponse
+    {
+        return $this->respondWithError(
+            message: $exception->getMessage(),
+            statusCode: $exception->getStatusCode(),
+            exception: $exception,
+        );
+    }
+
+    protected function respondQueryError(string $message = 'There was Issue with the Query'): JsonResponse
+    {
+        return $this->respondWithError($message, 500);
+    }
+
+    protected function respondPayloadTooLarge(): JsonResponse
+    {
+        return $this->respondWithError("Size of attached file should be less " . ini_get("upload_max_filesize") . "B", 413);
+    }
+
     /**
      * Respond with error.
      *
-     * @param $message
+     * @param string $message
      * @param int $statusCode
      *
      * @param Exception|null $exception
-     * @param bool|null $error_code
+     * @param int $error_code
      * @return JsonResponse
      */
     protected function respondWithError(string $message, int $statusCode = 400, Exception $exception = null, int $error_code = 1): JsonResponse
     {
-
         return $this->apiResponse(
             [
                 'success' => false,
@@ -253,24 +284,21 @@ trait ApiResponseTrait
      *
      * @return JsonResponse
      */
-    protected function respondNotFound(string $message = 'Not Found')
+    protected function respondNotFound(string $message = 'The specified URL cannot be found'): JsonResponse
     {
         return $this->respondWithError($message, 404);
     }
 
-    /**
-     * Respond with internal error.
-     *
-     * @param string $message
-     *
-     * @return JsonResponse
-     */
-    protected function respondInternalError(string $message = 'Internal Error')
+    protected function respondInternalError(Throwable $exception): JsonResponse
     {
-        return $this->respondWithError($message, 500);
+        return $this->respondWithError(
+            message: $exception->getMessage(),
+            statusCode: $exception->getCode(),
+            exception: $exception,
+        );
     }
 
-    protected function respondValidationErrors(ValidationException $exception)
+    protected function respondValidationErrors(ValidationException $exception): JsonResponse
     {
         return $this->apiResponse(
             [
@@ -280,5 +308,16 @@ trait ApiResponseTrait
             ],
             422
         );
+    }
+
+    /**
+     * Respond with model not found.
+     * @param ModelNotFoundException $exception
+     *
+     * @return JsonResponse
+     */
+    protected function respondModelNotFound(ModelNotFoundException $exception): JsonResponse
+    {
+        return $this->respondNotFound(message: 'Entry for ' . str_replace('App\\', '', $exception->getModel()) . ' not found');
     }
 }

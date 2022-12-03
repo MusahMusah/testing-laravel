@@ -23,7 +23,7 @@ class ProductController extends Controller
                 resource: ProductResource::collection($products)->resource,
                 message: 'Products retrieved successfully',
             );
-        } catch (HttpException $e) {
+        } catch (\Throwable $e) {
             return $this->respondWithError(
                 message: $e->getMessage(),
                 statusCode: $e->getStatusCode(),
