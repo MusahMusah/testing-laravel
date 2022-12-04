@@ -94,4 +94,9 @@ class ProductController extends Controller
             message: 'Product deleted successfully',
         );
     }
+
+    public function download()
+    {
+        return response()->download(public_path('/temp/babysitting.png'));
+    }
 }

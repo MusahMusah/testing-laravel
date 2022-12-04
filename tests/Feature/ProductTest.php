@@ -2,7 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Http\Services\ProductService;
+use App\Jobs\PublishProductJob;
+use App\Services\ProductService;
 use App\Models\Product;
 use Brick\Math\Exception\NumberFormatException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,6 +17,7 @@ class ProductTest extends TestCase
         $response = $this->getJson('/api/products');
 
         $response->assertStatus(200);
+        $this->assertTrue(true);
     }
 
     public function test_fetch_all_products_list(): void
@@ -67,6 +69,12 @@ class ProductTest extends TestCase
                 'success' => true,
                 'data' => $product->all(['id', 'name', 'price'])->first()->toArray(),
             ]);
+
+        $this->assertDatabaseHas('products', [
+            'name' => $product->name,
+            'price' => $product->getAttributes()['price'],
+        ]);
+        $this->assertModelExists($product);
     }
 
 
@@ -78,6 +86,7 @@ class ProductTest extends TestCase
         ];
 
         $response = $this->postJson(route('products.store'), $product);
+        $lastProduct = Product::latest()->first();
 
         $response
             ->assertCreated()
@@ -86,6 +95,13 @@ class ProductTest extends TestCase
                 'success' => true,
                 'data' => $product
             ]);
+
+        $this->assertDatabaseHas('products', [
+            'name' => 'Product 1',
+            'price' => 10000
+        ]);
+        $this->assertEquals($product['name'], $lastProduct->name);
+        $this->assertEquals($product['price'], $lastProduct->price);
     }
 
     public function testCreateProductValidationError(): void
@@ -168,10 +184,47 @@ class ProductTest extends TestCase
 
         $response
             ->assertUnprocessable()
+            ->assertJsonMissingValidationErrors(['price'])
             ->assertInvalid('name')
             ->assertJson([
                 'success' => false,
                 'errors' => true,
             ]);
+    }
+
+    public function testDeleteProduct(): void
+    {
+        $product = Product::factory()->create();
+
+        $response = $this->deleteJson(route('products.destroy', $product->id));
+
+        $response
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'data' => null
+            ]);
+        $this->assertDatabaseMissing('products', $product->toArray());
+        $this->assertModelMissing($product);
+        $this->assertDatabaseCount('products', 0);
+    }
+
+    public function testFileDownload(): void
+    {
+        $response = $this->getJson(route('download'));
+
+        $response
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename=babysitting.png');
+    }
+
+    public function testPublishProductJobSuccess()
+    {
+        $product = Product::factory()->create();
+
+        $this->assertNull($product->published_at);
+        (new PublishProductJob($product))->handle();
+        $product->refresh();
+        $this->assertNotNull($product->published_at);
     }
 }
