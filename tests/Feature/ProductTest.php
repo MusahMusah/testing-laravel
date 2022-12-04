@@ -138,10 +138,12 @@ class ProductTest extends TestCase
             'price' => 100,
         ];
 
-        $response = $this->actingAs($this->admin)->post('/products', $product);
+        $response = $this->followingRedirects()->actingAs($this->admin)->post('/products', $product);
 
-        $response->assertStatus(302);
-        $response->assertRedirect('/products');
+//        $response->assertStatus(302);
+//        $response->assertRedirect('/products');
+        $response->assertOk();
+        $response->assertSeeText($product['name']);
         $this->assertDatabaseHas('products', $product);
         $lastProduct = Product::latest()->first();
         $this->assertEquals($product['name'], $lastProduct->name);
