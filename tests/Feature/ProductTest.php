@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Product;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -11,22 +10,6 @@ use Tests\TestCase;
 class ProductTest extends TestCase
 {
     use RefreshDatabase;
-    protected User $user, $admin;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->user = $this->createUser();
-        $this->admin = $this->createUser(isAdmin: true);
-    }
-
-    private function createUser(bool $isAdmin = false): User
-    {
-        return User::factory()->create([
-            'is_admin' => $isAdmin,
-        ]);
-    }
 
     public function test_the_application_returns_a_successful_response(): void
     {
