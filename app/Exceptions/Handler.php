@@ -54,7 +54,15 @@ class Handler extends ExceptionHandler
     public function register()
     {
         $this->reportable(function (Throwable $e) {
-            //
+//            $ignoreable_exception_messages = ['Unauthenticated or Token Expired, Please Login'];
+//            $ignoreable_exception_messages[] = 'The refresh token is invalid.';
+//            $ignoreable_exception_messages[] = 'The resource owner or authorization server denied the request.';
+//            if (app()->bound('sentry') && $this->shouldReport($e)) {
+//                if (!in_array($e->getMessage(), $ignoreable_exception_messages)) {
+//                    app('sentry')->captureException($e);
+//                }
+//            }
+
         });
 
         $this->renderable(fn (NotFoundHttpException $e, $request) => $this->respondNotFound());
@@ -73,10 +81,10 @@ class Handler extends ExceptionHandler
 
         $this->renderable(fn (QueryException $e, $request) => $this->respondQueryError($e));
 
-//        $this->renderable(fn (\Throwable $e, $request) => $this->respondInternalError($e));
+        $this->renderable(fn (\Error $e, $request) => $this->respondInternalError($e));
     }
 
-    public function ddssrender($request, Throwable $exception)
+    public function rbender($request, Throwable $exception)
     {
 //        dd(get_class($exception));
         if ($request->expectsJson()) {

@@ -26,7 +26,6 @@ class ProductController extends Controller
         } catch (\Throwable $e) {
             return $this->respondWithError(
                 message: $e->getMessage(),
-                statusCode: $e->getStatusCode(),
                 exception: $e,
             );
         }

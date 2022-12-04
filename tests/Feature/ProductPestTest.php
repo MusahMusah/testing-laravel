@@ -17,7 +17,7 @@ it('should update product', function () {
         ->assertStatus(200)
         ->assertJson([
             'success' => true,
-            'result' => [
+            'data' => [
                 'name' => 'Product 1',
                 'price' => 100,
             ],
@@ -25,7 +25,7 @@ it('should update product', function () {
 });
 
 // update product return validation error
-test('should return validation error', function () {
+test('update product should return validation error', function () {
     $product = createProduct();
 
     $this->actingAs($this->admin)

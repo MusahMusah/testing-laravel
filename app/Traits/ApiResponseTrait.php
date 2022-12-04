@@ -14,7 +14,6 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Throwable;
 
 trait ApiResponseTrait
 {
@@ -32,7 +31,7 @@ trait ApiResponseTrait
         return $this->apiResponse(
             [
                 'success' => true,
-                'result' => $resource,
+                'data' => $resource,
                 'message' => $message
             ], $statusCode, $headers
         );
@@ -49,7 +48,7 @@ trait ApiResponseTrait
         $responseStructure = [
             'success' => $data['success'],
             'message' => $data['message'] ?? null,
-            'result' => $data['result'] ?? null,
+            'data' => $data['data'] ?? null,
         ];
         if (isset($data['errors'])) {
             $responseStructure['errors'] = $data['errors'];
@@ -131,7 +130,7 @@ trait ApiResponseTrait
         return $this->apiResponse(
             [
                 'success' => true,
-                'result' => $resourceCollection->response()->getData()
+                'data' => $resourceCollection->response()->getData()
             ], $statusCode, $headers
         );
     }
@@ -149,7 +148,7 @@ trait ApiResponseTrait
         return $this->apiResponse(
             [
                 'success' => true,
-                'result' => $resource,
+                'data' => $resource,
                 'message' => $message
             ], $statusCode, $headers
         );
@@ -249,11 +248,11 @@ trait ApiResponseTrait
      * @param string $message
      * @param int $statusCode
      *
-     * @param Exception|null $exception
+     * @param Exception|Error|null $exception
      * @param int $error_code
      * @return JsonResponse
      */
-    protected function respondWithError(string $message, int $statusCode = 400, Exception $exception = null, int $error_code = 1): JsonResponse
+    protected function respondWithError(string $message, int $statusCode = 400, Exception | Error $exception = null, int $error_code = 1): JsonResponse
     {
         return $this->apiResponse(
             [
@@ -289,11 +288,11 @@ trait ApiResponseTrait
         return $this->respondWithError($message, 404);
     }
 
-    protected function respondInternalError(Throwable $exception): JsonResponse
+    protected function respondInternalError(\Error $exception): JsonResponse
     {
         return $this->respondWithError(
             message: $exception->getMessage(),
-            statusCode: $exception->getCode(),
+            statusCode: 500,
             exception: $exception,
         );
     }

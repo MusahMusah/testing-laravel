@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Http\Services\ProductService;
 use App\Models\Product;
+use Brick\Math\Exception\NumberFormatException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class ProductTest extends TestCase
@@ -26,11 +27,22 @@ class ProductTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson([
             'success' => true,
-            'result' => [
-                'data' => $products->toArray(),
+            'data' => [
+                'data' => $products->map(function ($product) {
+                    return [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'price' => $product->price,
+                    ];
+                })->toArray(),
             ],
         ]);
-        $this->assertCount(10, $response->json()['result']['data']);
+        $response->assertJsonFragment([
+            'id' => $products[0]->id,
+            'name' => $products[0]->name,
+            'price' => $products[0]->price
+        ]);
+        $this->assertCount(10, $response->json()['data']['data']);
     }
 
     public function test_fetch_single_product(): void
@@ -40,10 +52,20 @@ class ProductTest extends TestCase
         $response = $this->getJson(route('products.show', $product->id));
 
         $response
-            ->assertStatus(200)
+            ->assertOk()
+            ->assertSuccessful()
+            ->assertJsonPath('data.name', $product->name)
+            ->assertJsonMissingPath('data.created_at')
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'name',
+                    'price',
+                ]
+            ])
             ->assertJson([
                 'success' => true,
-                'result' => $product->toArray(),
+                'data' => $product->all(['id', 'name', 'price'])->first()->toArray(),
             ]);
     }
 
@@ -58,10 +80,11 @@ class ProductTest extends TestCase
         $response = $this->postJson(route('products.store'), $product);
 
         $response
-            ->assertStatus(201)
+            ->assertCreated()
+            ->assertSuccessful()
             ->assertJson([
                 'success' => true,
-                'result' => $product
+                'data' => $product
             ]);
     }
 
@@ -74,10 +97,81 @@ class ProductTest extends TestCase
         $response = $this->postJson(route('products.store'), $product);
 
         $response
-            ->assertStatus(422)
+            ->assertUnprocessable()
             ->assertJson([
                 'success' => false,
                 'errors' => true
+            ]);
+    }
+
+    public function testProductServiceCreateReturnsProduct(): void
+    {
+        $data = [
+            'name' => 'Product New',
+            'price' => 1234,
+        ];
+
+        $product = (new ProductService())->create(name: $data['name'], price: $data['price']);
+
+        $this->assertInstanceOf(Product::class, $product);
+    }
+
+    public function testProductServiceCreateReturnsException(): void
+    {
+        try {
+            $data = [
+                'name' => 'Product New',
+                'price' => 1234567,
+            ];
+
+            (new ProductService())->create(name: $data['name'], price: $data['price']);
+        } catch (NumberFormatException $exception) {
+            $this->assertInstanceOf(NumberFormatException::class, $exception);
+        }
+    }
+
+    public function testUpdateProduct(): void
+    {
+        $data = [
+            'name' => 'Musah Cloth',
+            'price' => 100,
+        ];
+        $product = Product::create($data);
+
+        $response = $this->patchJson(route('products.update', $product->id), [
+            'name' => 'Musah Cloth Updated',
+            'price' => 200,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertSuccessful()
+            ->assertJsonMissing($data)
+            ->assertJson([
+                'success' => true,
+                'data' => []
+            ]);
+    }
+
+    public function testUpdateProductValidationError(): void
+    {
+        $data = [
+            'name' => 'Musah Cloth',
+            'price' => 100,
+        ];
+        $product = Product::create($data);
+
+        $response = $this->patchJson(route('products.update', $product->id), [
+            'name' => '',
+            'price' => 200,
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertInvalid('name')
+            ->assertJson([
+                'success' => false,
+                'errors' => true,
             ]);
     }
 }
