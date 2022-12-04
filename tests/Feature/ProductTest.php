@@ -12,6 +12,11 @@ use Tests\TestCase;
 class ProductTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * TODO: php artisan test --stop-on-failure
+     * TODO: $this->markTestSkipped('skipped for now');
+     */
     public function test_product_screen_can_be_rendered()
     {
         $response = $this->getJson('/api/products');
