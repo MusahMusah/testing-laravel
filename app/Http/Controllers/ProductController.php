@@ -2,22 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProductUpdatedEvent;
 use App\Http\Requests\ProductRequest;
 use App\Http\Resources\Ghost\EmptyResource;
 use App\Http\Resources\ProductResource;
+use App\Jobs\NewProductJob;
 use App\Models\Product;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ProductController extends Controller
 {
     use ApiResponseTrait;
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $products = Product::paginate(10);
+            $products = $request->filter ? Product::published()->paginate(10) : Product::paginate(10);
 
             return $this->respondWithSuccess(
                 resource: ProductResource::collection($products)->resource,
@@ -40,6 +43,14 @@ class ProductController extends Controller
     public function store(ProductRequest $request, Product $product): JsonResponse
     {
         $product = $product->create($request->validated());
+
+        if ($request->hasFile('image')) {
+            $fileName = $request->file('image')->getClientOriginalName();
+            $request->file('image')->storeAs('products', $fileName);
+            $product->update(['image' => $fileName]);
+        }
+
+        NewProductJob::dispatch($product);
 
         return $this->respondWithSuccess(
             resource: ProductResource::make($product),
@@ -72,6 +83,8 @@ class ProductController extends Controller
     public function update(ProductRequest $request, Product $product): JsonResponse
     {
         $product->update($request->all());
+
+        event(new ProductUpdatedEvent());
 
         return $this->respondWithSuccess(
             resource: ProductResource::make($product),

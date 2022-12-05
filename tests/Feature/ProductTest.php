@@ -2,11 +2,22 @@
 
 namespace Tests\Feature;
 
+use App\Events\ProductUpdatedEvent;
+use App\Jobs\NewProductJob;
 use App\Jobs\PublishProductJob;
+use App\Mail\NewProductCreatedMail;
+use App\Models\User;
+use App\Notifications\NewProductCreatedNotification;
 use App\Services\ProductService;
 use App\Models\Product;
 use Brick\Math\Exception\NumberFormatException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProductTest extends TestCase
@@ -82,9 +93,12 @@ class ProductTest extends TestCase
         $this->assertModelExists($product);
     }
 
-
     public function test_create_product_successful(): void
     {
+        Mail::fake();
+        Notification::fake();
+
+        $user = User::factory()->create();
         $product = [
             'name' => 'Product 1',
             'price' => 100,
@@ -107,6 +121,9 @@ class ProductTest extends TestCase
         ]);
         $this->assertEquals($product['name'], $lastProduct->name);
         $this->assertEquals($product['price'], $lastProduct->price);
+
+        Mail::assertSent(NewProductCreatedMail::class);
+        Notification::assertSentTo($user, NewProductCreatedNotification::class);
     }
 
     public function testCreateProductValidationError(): void
@@ -170,7 +187,7 @@ class ProductTest extends TestCase
             ->assertJsonMissing($data)
             ->assertJson([
                 'success' => true,
-                'data' => []
+                'data' => [] //$product->toArray()
             ]);
     }
 
@@ -231,5 +248,129 @@ class ProductTest extends TestCase
         (new PublishProductJob($product))->handle();
         $product->refresh();
         $this->assertNotNull($product->published_at);
+    }
+
+    public function test_product_show_when_published_at_correct_time(): void
+    {
+        $product = Product::factory()->create([
+            'published_at' => now()->addDay()->setTime(14, 00)
+        ]);
+
+        $response = $this->getJson(route('products.index', ['filter' => 'published']));
+
+        $this->freezeTime(function () use ($product) {
+            $this->travelTo(now()->addDay()->setTime(14, 10));
+            $response = $this->getJson(route('products.index', ['filter' => 'published']));
+            $response
+                ->assertOk()
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'data' => [
+                            0 => [
+                                'id' => $product->id,
+                                'name' => $product->name,
+                                'price' => $product->price
+                            ]
+                        ]
+                    ]
+                ]);
+        });
+
+        $response
+            ->assertOk()
+            ->assertJsonMissing($product->toArray())
+            ->assertJson([
+                'success' => true,
+                'data' => []
+            ]);
+    }
+
+    public function testCreateProductImageUpload(): void
+    {
+        $this->markTestSkipped('skipped for now');
+        Storage::fake();
+        $fileName = 'photo1.png';
+        $productData = [
+            'name' => 'Product 123',
+            'price' => 120,
+            'image' => UploadedFile::fake()->image($fileName),
+        ];
+
+        $response = $this->postJson(route('products.store'), $productData);
+
+        $response
+            ->assertCreated()
+            ->assertSuccessful()
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        $lastProduct = Product::query()->latest()->first();
+
+        $this->assertEquals($fileName, $lastProduct->image);
+
+        Storage::assertExists("products/${fileName}");
+    }
+
+    public function testCreateProductJobDispatchedSuccessfully(): void
+    {
+        Bus::fake();
+
+        $productData = [
+            'name' => 'Product 1',
+            'price' => 200,
+        ];
+
+        $response = $this->postJson(route('products.store'), $productData);
+        $response
+            ->assertCreated()
+            ->assertSuccessful();
+
+        Bus::assertDispatched(NewProductJob::class);
+    }
+
+    public function testCreateProductMailAndNotificationSent(): void
+    {
+        Mail::fake();
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $product = [
+            'name' => 'Product 1',
+            'price' => 300,
+        ];
+
+        $response = $this->postJson(route('products.store'), $product);
+        $response
+            ->assertCreated()
+            ->assertSuccessful();
+
+        Mail::assertSent(NewProductCreatedMail::class);
+        Notification::assertSentTo($user, NewProductCreatedNotification::class);
+    }
+
+    public function testUpdateProductFiresEvent(): void
+    {
+        Event::fake();
+        $this->expectsEvents(ProductUpdatedEvent::class);
+
+        $data = [
+            'name' => 'Musah Cloth',
+            'price' => 100,
+        ];
+        $product = Product::create($data);
+
+        $response = $this->patchJson(route('products.update', $product->id), [
+            'name' => 'Musah Cloth Updated',
+            'price' => 200,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertSuccessful();
+
+        Event::assertDispatched(ProductUpdatedEvent::class);
     }
 }
