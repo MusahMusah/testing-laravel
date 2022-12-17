@@ -335,6 +335,9 @@ class ProductTest extends TestCase
         Mail::fake();
         Notification::fake();
 
+//        $this->expectsNotification()
+//        $this->expectsJobs();
+
         $user = User::factory()->create();
 
         $product = [
