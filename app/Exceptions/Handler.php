@@ -77,7 +77,7 @@ class Handler extends ExceptionHandler
 
         $this->renderable(fn (PostTooLargeException $e, $request) => $this->respondPayloadTooLarge());
 
-        $this->renderable(fn (HttpException $e, $request) => dd($e));
+        $this->renderable(fn (HttpException $e, $request) => $this->respondHttpError($e));
 
         $this->renderable(fn (QueryException $e, $request) => $this->respondQueryError($e));
 
